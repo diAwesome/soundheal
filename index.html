@@ -141,8 +141,8 @@
         const audioId = atob(B64_AUDIO_ID);
 
         // Assign stream URLs
-        v.src = `https://drive.google.com/uc?export=download&id=${videoId}`;
-        a.src = `https://drive.google.com/uc?export=download&id=${audioId}`;
+       v.src = `https://drive.usercontent.google.com/download?id=${videoId}&export=download&confirm=t`;
+a.src = `https://drive.usercontent.google.com/download?id=${audioId}&export=download&confirm=t`;
       } else {
         errorMsg.innerText = "Incorrect passcode. Please try again.";
       }
