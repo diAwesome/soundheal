@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protected Stream Player</title>
+  <style>
+    * {
+      -webkit-touch-callout: none; /* Disable iOS long-press menu */
+      user-select: none;          /* Disable text selection */
+    }
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .card {
+      max-width: 450px;
+      margin: 0 auto;
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    input[type="password"] {
+      width: 80%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: #fff;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 6px;
+      border: none;
+      background: #007AFF;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #444;
+    }
+    #playerContainer {
+      display: none; /* Hidden until passcode is verified */
+    }
+    video {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      background: #000;
+    }
+    #errorMsg {
+      color: #ff453a;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;">
+
+  <div class="card">
+    <!-- Passcode Gate -->
+    <div id="gatekeeper">
+      <h2>Restricted Access</h2>
+      <p>Enter the passcode to unlock playback:</p>
+      <input type="password" id="passInput" placeholder="Enter Passcode">
+      <br>
+      <button id="unlockBtn">Unlock Player</button>
+      <div id="errorMsg"></div>
+    </div>
+
+    <!-- Media Player UI -->
+    <div id="playerContainer">
+      <h2>Synchronized Stream</h2>
+      
+      <video id="driveVideo" 
+             controlsList="nodownload nodownload noremoteplayback" 
+             disablePictureInPicture 
+             muted 
+             playsinline 
+             oncontextmenu="return false;">
+      </video>
+      
+      <audio id="driveAudio" 
+             controlsList="nodownload" 
+             preload="auto" 
+             oncontextmenu="return false;">
+      </audio>
+
+      <button id="startBtn">Start Synchronized Playback</button>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // CONFIGURATION (EDIT THESE VALUES)
+    // -------------------------------------------------------------
+    const SET_PASSCODE = "Ieuphoria"; // Set your custom passcode here
+
+    // Paste your Base64 Encoded File IDs here (NOT original IDs)
+    const B64_VIDEO_ID = "MV82M1J5Yy03amVPLWZVRHFWNHRlZDdiTUVQN1Q0MWkx"; // Replace with your Base64 video ID
+    const B64_AUDIO_ID = "MS12NGlicU5SVjFvTG5McFd5S3h0Vlk0bEZWaGpxSXhm"; // Replace with your Base64 audio ID
+    // -------------------------------------------------------------
+
+    // Disable Common Keyboard Shortcuts for DevTools
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F12' || 
+          (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+          (e.ctrlKey && e.key === 'u')) {
+        e.preventDefault();
+      }
+    });
+
+    const gatekeeper = document.getElementById('gatekeeper');
+    const playerContainer = document.getElementById('playerContainer');
+    const passInput = document.getElementById('passInput');
+    const unlockBtn = document.getElementById('unlockBtn');
+    const errorMsg = document.getElementById('errorMsg');
+
+    const v = document.getElementById('driveVideo');
+    const a = document.getElementById('driveAudio');
+    const startBtn = document.getElementById('startBtn');
+
+    // Passcode Verification Logic
+    unlockBtn.addEventListener('click', () => {
+      if (passInput.value === SET_PASSCODE) {
+        gatekeeper.style.display = 'none';
+        playerContainer.style.display = 'block';
+        
+        // Decode Base64 string back to File ID at runtime
+        const videoId = atob(B64_VIDEO_ID);
+        const audioId = atob(B64_AUDIO_ID);
+
+        // Assign stream URLs
+        v.src = `https://drive.google.com/uc?export=download&id=${videoId}`;
+        a.src = `https://drive.google.com/uc?export=download&id=${audioId}`;
+      } else {
+        errorMsg.innerText = "Incorrect passcode. Please try again.";
+      }
+    });
+
+    // Playback Logic
+    startBtn.addEventListener('click', async () => {
+      try {
+        startBtn.disabled = true;
+        startBtn.innerText = "Buffering...";
+
+        // Synchronized launch
+        await Promise.all([v.play(), a.play()]);
+        startBtn.innerText = "Playing Audio & Video...";
+
+        // Register MediaSession for background execution
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: "30-Minute Audio Stream",
+            artist: "Synchronized Session"
+          });
+          navigator.mediaSession.setActionHandler('play', () => a.play());
+          navigator.mediaSession.setActionHandler('pause', () => a.pause());
+        }
+      } catch (err) {
+        alert("Playback error: " + err.message);
+        startBtn.disabled = false;
+        startBtn.innerText = "Retry Playback";
+      }
+    });
+
+    // When 1-min video finishes, hide the element while audio continues
+    v.addEventListener('ended', () => {
+      v.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
